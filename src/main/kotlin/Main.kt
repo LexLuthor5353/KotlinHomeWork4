@@ -28,7 +28,7 @@ data class Likes(
     val canPublish: Boolean = false
 )
 
-object WallService {
+class WallService {
     private val posts = mutableListOf<Post>()
     private var nextId = 1
 

@@ -4,27 +4,29 @@ import org.junit.jupiter.api.Test
 class WallServiceTest {
     @Test
     fun add() {
+        val service = WallService()
         val post = Post(text = "Hello user!")
-        val addedPost = WallService.add(post)
+        val addedPost = service.add(post)
 
         assertNotEquals(0, addedPost.id)
     }
 
     @Test
     fun update() {
-        val original = WallService.add(Post(text = "Orig"))
+        val service = WallService()
+        val original = service.add(Post(text = "Orig"))
         val updated = original.copy(text = "Updat")
 
-        val result = WallService.update(updated)
+        val result = service.update(updated)
 
         assertTrue(result)
 
     }
     @Test
     fun updateReturnFalse() {
+        val service = WallService()
         val post = Post(id = 999, text = "Post someone")
-
-        val result = WallService.update(post)
+        val result = service.update(post)
 
         assertFalse(result)
     }
