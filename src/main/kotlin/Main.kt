@@ -30,8 +30,20 @@ data class Likes(
     val canPublish: Boolean = false
 )
 
-interface Attachment {
-    val type: String
+//interface Attachment {
+//    val type: String
+//}
+
+//data class PhotoAttachment(val photo: Photo): Attachment {
+//    override val type = "photo"
+//}
+
+sealed class Attachment {
+    abstract val type: String
+}
+
+data class PhotoAttachment(val photo: Photo) : Attachment() {
+    override val type = "photo"
 }
 
 data class ImagePreview(
@@ -41,24 +53,23 @@ data class ImagePreview(
     val withPadding: Int
 )
 
-data class PhotoAttachment(val photo: Photo): Attachment {
-    override val type = "photo"
-}
-
 data class Photo(
     val id: Int,
     val ownerId: Int,
     val album_id: Int,
     val text: String,
     val date: Int,
+    val url: String,
+    val title: String,
     val photo130: String,
     val photo604: String,
     val photo807: String
 )
 
-data class VideoAttachment(val video: Video): Attachment {
+data class VideoAttachment(val video: Video) : Attachment() {
     override val type = "video"
 }
+
 
 data class Video(
     val id: Int,
@@ -67,7 +78,7 @@ data class Video(
     val image: Array<ImagePreview>
 )
 
-data class AudioAttachment (val audio: Audio):Attachment{
+data class AudioAttachment (val audio: Audio):Attachment(){
     override val type = "audio"
 }
 
@@ -78,17 +89,17 @@ data class Audio(
     val title: String,
     val duration: Int,
     val url: String,
-    val genreid: Int,
+    val genreId: Int,
     val date: Int
 )
 
-data class FileAttachment (val file: File): Attachment {
+data class FileAttachment (val file: File): Attachment() {
     override val type = "file"
 }
 
 data class File(
     val id: Int,
-    val ownerid: Int,
+    val ownerId: Int,
     val title: String,
     val size: Int,
     val ext: String,
@@ -96,6 +107,15 @@ data class File(
     val date: Int,
     val type: Int
 )
+
+
+fun describeAttachment(attachment: Attachment): String = when (attachment) {
+    is PhotoAttachment -> "Фото: ${attachment.photo.title}"
+    is VideoAttachment -> "Видео: ${attachment.video.title}"
+    is AudioAttachment -> "Аудио: ${attachment.audio.title}"
+    is FileAttachment -> "Файл: ${attachment.file.title}"
+}
+
 
 class WallService {
     private val posts = mutableListOf<Post>()
