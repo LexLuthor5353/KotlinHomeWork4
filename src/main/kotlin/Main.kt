@@ -1,5 +1,3 @@
-import kotlin.time.Duration
-
 data class Post(
     val original: Post? = null,
     val id: Int = 0,
@@ -40,7 +38,7 @@ data class ImagePreview(
     val height: Int,
     val width: Int,
     val url : String,
-    val withpadding: Int
+    val withPadding: Int
 )
 
 data class PhotoAttachment(val photo: Photo): Attachment {
@@ -58,7 +56,7 @@ data class Photo(
     val photo807: String
 )
 
-data class VidoAttachment(val video: Video): Attachment {
+data class VideoAttachment(val video: Video): Attachment {
     override val type = "video"
 }
 
@@ -66,10 +64,10 @@ data class Video(
     val id: Int,
     val ownerId: Int,
     val title: String,
-    val image: Array<ImagePreview>,
+    val image: Array<ImagePreview>
 )
 
-data class audioAttachment (val audio: Audio):Attachment{
+data class AudioAttachment (val audio: Audio):Attachment{
     override val type = "audio"
 }
 
@@ -82,6 +80,21 @@ data class Audio(
     val url: String,
     val genreid: Int,
     val date: Int
+)
+
+data class FileAttachment (val file: File): Attachment {
+    override val type = "file"
+}
+
+data class File(
+    val id: Int,
+    val ownerid: Int,
+    val title: String,
+    val size: Int,
+    val ext: String,
+    val url: String,
+    val date: Int,
+    val type: Int
 )
 
 class WallService {
