@@ -4,7 +4,7 @@ data class Post(
     val ownerId: Int = 0,
     val fromId: Int = 0,
     val date: Int = 0,
-    val text: String = "",
+    val text: String,
     val friendsOnly: Boolean = false,
     val isPinned: Boolean = false,
     val markedAsAds: Boolean = false,
@@ -97,9 +97,22 @@ data class File(
     val type: Int
 )
 
+data class Comment(
+    val id: Int,
+    val fromId: Int,
+    val date: Int,
+    val text: String,
+    val postId: Int
+)
+
+class PostNotFoundException(message: String): RuntimeException(message)
+
 class WallService {
     private val posts = mutableListOf<Post>()
     private var nextId = 1
+//    private val comments = mutableListOf<Comment>()?: throw PostNotFoundException("Пост с id $postId  не найен ")
+    private val comments = mutableListOf<Comment>()
+    private var nextCommentId = 1
 
     fun add(post: Post): Post {
         val postWithId = post.copy(id = nextId++)
@@ -117,5 +130,15 @@ class WallService {
         return false
     }
 
+    fun createComment(postId: Int, comment: Comment): Comment {
+        val postExist = posts.any {it.id == postId}
+        if (!postExist) {
+            throw PostNotFoundException("Пост с id $postId  не найен")
+        }
+        val commentWithId = comment.copy(id = nextCommentId++, postId = postId)
+        comments += commentWithId
+        return commentWithId
+
+    }
 
 }

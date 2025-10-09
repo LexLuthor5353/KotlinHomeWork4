@@ -25,10 +25,32 @@ class WallServiceTest {
     @Test
     fun updateReturnFalse() {
         val service = WallService()
-        val post = Post(id = 999, text = "Post someone")
+        val post = Post(id = 1, text = "Post someone")
         val result = service.update(post)
 
         assertFalse(result)
+    }
+
+    @Test
+    fun `should add comment to existing post`() {
+        val service = WallService()
+        val post = service.add(Post(text = "Привет"))
+        val comment = Comment(id = 0, fromId = 1, date = 12_12_2025, text = "Комментарий",1)
+
+        val result = service.createComment(post.id, comment)
+
+        assertEquals(1, result.id)
+        assertEquals("Комментарий", result.text)
+    }
+
+    @Test
+    fun `should throw PostNotFoundException when post not found`() {
+        val service = WallService()
+        val comment = Comment(id = 0, fromId = 1, date = 12_12_2025, text = "Комментарий",1)
+
+        assertThrows(PostNotFoundException::class.java) {
+            service.createComment(1, comment)
+        }
     }
 
 //    @Test
