@@ -105,6 +105,62 @@ data class Comment(
     val postId: Int
 )
 
+interface Deletable {
+    val id: Int
+    val isDeleted: Boolean
+}
+
+data class Notes(
+    override val id: Int, // ид заметки
+    val ownerId: Int, // ИД владельца заметки
+    override val isDeleted: Boolean, //Помечена на удалени (По дефолту фолс)
+    val title: String, //наименование заметки
+    val text: String, // текст заметки
+    val addDate: String, //Дата добавления заметки. Переставил на строку что бы нормально вывести дату в консоль, а не сполошным числом
+    val editDate: Int?, // Дата реадактирования. Надо понять как выполнить проверку на редактирование и не отображать это поле если не было редактирования
+    val countComment: Int? // Количество комментов к заметке. Тоже самое что и дата редактирования. Временно нулабл
+): Deletable
+
+class Methods<T: Deletable> {
+    private val items = mutableListOf<T>()
+    fun add(item: T): T {
+        items += item
+        return item
+    }
+    fun getAll(): List<T> = items.filter {!it.isDeleted}
+    fun findeById(id: Int):T? = items.find {it.id == id}
+    fun delete(id: Int): Boolean {
+        val index = items.indexOfFirst { it.id == id }
+        if (index == -1) {return false}
+        val item = items[index]
+        if (item.isDeleted) {return false}
+        //по идее тут нужно сделать копию и подифицировать у нее признак удление = тру
+        return true
+    }
+
+    fun restore(id: Int): Boolean {
+        val index = items.indexOfFirst { it.id == id }
+        if(index == -1) {return false}
+        val item = items[index]
+        if (!item.isDeleted) {return false}
+        //по идее тут нужно сделать копию и подифицировать у нее признак удление = тру
+        return true
+    }
+}
+
+fun main() {
+    val notsMethod = Methods<Notes>()
+    val note1 = notsMethod.add(Notes(1, 1,false,"Тест Заметка", "ЧТо то тестовое", "21.10.2025", null,null))
+    val note2 = notsMethod.add(Notes(2,2,false,"Hello notes","Hello my comrade notes","21.10.2025",null,5))
+
+//    println(notsMethod.getAll())
+    notsMethod.delete(1)
+//    println(notsMethod.getAll())
+//    notsMethod.restore(1)
+    println(notsMethod.getAll())
+}
+
+
 class PostNotFoundException(message: String): RuntimeException(message)
 
 class WallService {
