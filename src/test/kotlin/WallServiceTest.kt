@@ -1,7 +1,9 @@
-import org.junit.jupiter.api.Assertions.*
-import org.junit.jupiter.api.Test
+import org.junit.Assert.*
+import org.junit.Test
+import org.junit.Before
 
 class WallServiceTest {
+
     @Test
     fun add() {
         val service = WallService()
@@ -20,8 +22,8 @@ class WallServiceTest {
         val result = service.update(updated)
 
         assertTrue(result)
-
     }
+
     @Test
     fun updateReturnFalse() {
         val service = WallService()
@@ -32,10 +34,10 @@ class WallServiceTest {
     }
 
     @Test
-    fun `should add comment to existing post`() {
+    fun addCommentToExistingPost() {
         val service = WallService()
         val post = service.add(Post(text = "Привет"))
-        val comment = Comment(id = 0, fromId = 1, date = 12_12_2025, text = "Комментарий",1)
+        val comment = Comment(0, 1, "12.12.2025", "Комментарий", post.id, 1, false)
 
         val result = service.createComment(post.id, comment)
 
@@ -43,24 +45,65 @@ class WallServiceTest {
         assertEquals("Комментарий", result.text)
     }
 
-    @Test
-    fun `should throw PostNotFoundException when post not found`() {
+    @Test(expected = PostNotFoundException::class)
+    fun postNotFound() {
         val service = WallService()
-        val comment = Comment(id = 0, fromId = 1, date = 12_12_2025, text = "Комментарий",1)
+        val comment = Comment(0, 1, "12.12.2025", "Комментарий", 1, 1, false)
 
-        assertThrows(PostNotFoundException::class.java) {
-            service.createComment(1, comment)
-        }
+        service.createComment(999, comment)
     }
 
-//    @Test
-//    fun addFailure() {
-//        val post = Post(text = "doFail")
-//        val addPost = WallService.add(post)
-//        assertEquals(0, addedPost.id, "Жолжен провалиться по идее")
-//
-//    }
+    class MethodsTest {
 
+        private lateinit var repo: Methods<Notes>
 
+        @Before
+        fun setup() {
+            repo = Methods()
+            repo.add(Notes(1, 100, false, "Заметка", "Текст", "22.10.2025", null, null))
+        }
 
+        @Test
+        fun addStoreItem() {
+            val result = repo.getAll()
+            assertEquals(1, result.size)
+            assertEquals("Заметка", result[0].title)
+        }
+
+        @Test
+        fun deleteItemAsDeleted() {
+            val success = repo.delete(1)
+            assertTrue(success)
+            assertTrue(repo.findeById(1)?.isDeleted == true)
+        }
+
+        @Test
+        fun restoreDeletedItem() {
+            repo.delete(1)
+            val success = repo.restore(1)
+            assertTrue(success)
+            assertFalse(repo.findeById(1)?.isDeleted ?: true)
+        }
+
+        @Test(expected = AlreadyDeletedException::class)
+        fun deleteIfAlreadyDeleted() {
+            repo.delete(1)
+            repo.delete(1)
+        }
+
+        @Test(expected = NotDeletedException::class)
+        fun restoreIfNotDeleted() {
+            repo.restore(1)
+        }
+
+        @Test(expected = ItemNotFoundException::class)
+        fun deleteIfItemNotFound() {
+            repo.delete(999)
+        }
+
+        @Test(expected = ItemNotFoundException::class)
+        fun restoreIfItemNotFound() {
+            repo.restore(999)
+        }
+    }
 }

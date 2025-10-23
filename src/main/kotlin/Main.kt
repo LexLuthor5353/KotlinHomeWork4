@@ -37,11 +37,11 @@ interface Attachment {
 data class ImagePreview(
     val height: Int,
     val width: Int,
-    val url : String,
+    val url: String,
     val withPadding: Int
 )
 
-data class PhotoAttachment(val photo: Photo): Attachment {
+data class PhotoAttachment(val photo: Photo) : Attachment {
     override val type = "photo"
 }
 
@@ -56,7 +56,7 @@ data class Photo(
     val photo807: String
 )
 
-data class VideoAttachment(val video: Video): Attachment {
+data class VideoAttachment(val video: Video) : Attachment {
     override val type = "video"
 }
 
@@ -67,7 +67,7 @@ data class Video(
     val image: Array<ImagePreview>
 )
 
-data class AudioAttachment (val audio: Audio):Attachment{
+data class AudioAttachment(val audio: Audio) : Attachment {
     override val type = "audio"
 }
 
@@ -82,7 +82,7 @@ data class Audio(
     val date: Int
 )
 
-data class FileAttachment (val file: File): Attachment {
+data class FileAttachment(val file: File) : Attachment {
     override val type = "file"
 }
 
@@ -98,16 +98,23 @@ data class File(
 )
 
 data class Comment(
-    val id: Int,
-    val fromId: Int,
-    val date: Int,
-    val text: String,
-    val postId: Int
-)
+    override val id: Int, //ид коммента
+    val fromId: Int, //ид автора комметария
+    val date: String, //Дата комметрия(Так же переделан на строку)
+    val text: String, //Текс комментария
+    val postId: Int, //ИД поста
+    val noteId: Int?,
+    override val isDeleted: Boolean// пометка на удаление
+) : Deletable {
+    override fun toggleDeletable(): Deletable {
+        return this.copy(isDeleted = !isDeleted)
+    }
+}
 
 interface Deletable {
     val id: Int
     val isDeleted: Boolean
+    fun toggleDeletable(): Deletable
 }
 
 data class Notes(
@@ -119,54 +126,47 @@ data class Notes(
     val addDate: String, //Дата добавления заметки. Переставил на строку что бы нормально вывести дату в консоль, а не сполошным числом
     val editDate: Int?, // Дата реадактирования. Надо понять как выполнить проверку на редактирование и не отображать это поле если не было редактирования
     val countComment: Int? // Количество комментов к заметке. Тоже самое что и дата редактирования. Временно нулабл
-): Deletable
+) : Deletable {
+    override fun toggleDeletable(): Deletable {
+        return this.copy(isDeleted = !isDeleted)
+    }
+}
 
-class Methods<T: Deletable> {
+class Methods<T : Deletable> {
     private val items = mutableListOf<T>()
     fun add(item: T): T {
         items += item
         return item
     }
-    fun getAll(): List<T> = items.filter {!it.isDeleted}
-    fun findeById(id: Int):T? = items.find {it.id == id}
+
+    fun getAll(): List<T> = items.filter { !it.isDeleted }
+    fun findeById(id: Int): T? = items.find { it.id == id }
     fun delete(id: Int): Boolean {
         val index = items.indexOfFirst { it.id == id }
-        if (index == -1) {return false}
+        if (index == -1) throw ItemNotFoundException("Объект с id $id не найден")
         val item = items[index]
-        if (item.isDeleted) {return false}
-        //по идее тут нужно сделать копию и подифицировать у нее признак удление = тру
+        if (item.isDeleted) throw AlreadyDeletedException("Объект с id $id уже удалён")
+        items[index] = item.toggleDeletable() as T
         return true
     }
 
     fun restore(id: Int): Boolean {
         val index = items.indexOfFirst { it.id == id }
-        if(index == -1) {return false}
+        if (index == -1) throw ItemNotFoundException("Объект с id $id не найден")
         val item = items[index]
-        if (!item.isDeleted) {return false}
-        //по идее тут нужно сделать копию и подифицировать у нее признак удление = тру
+        if (!item.isDeleted) throw NotDeletedException("Объект с id $id не был удалён")
+        items[index] = item.toggleDeletable() as T
         return true
     }
 }
 
-fun main() {
-    val notsMethod = Methods<Notes>()
-    val note1 = notsMethod.add(Notes(1, 1,false,"Тест Заметка", "ЧТо то тестовое", "21.10.2025", null,null))
-    val note2 = notsMethod.add(Notes(2,2,false,"Hello notes","Hello my comrade notes","21.10.2025",null,5))
-
-//    println(notsMethod.getAll())
-    notsMethod.delete(1)
-//    println(notsMethod.getAll())
-//    notsMethod.restore(1)
-    println(notsMethod.getAll())
-}
-
-
-class PostNotFoundException(message: String): RuntimeException(message)
+class PostNotFoundException(message: String) : RuntimeException(message)
 
 class WallService {
     private val posts = mutableListOf<Post>()
     private var nextId = 1
-//    private val comments = mutableListOf<Comment>()?: throw PostNotFoundException("Пост с id $postId  не найен ")
+
+    //    private val comments = mutableListOf<Comment>()?: throw PostNotFoundException("Пост с id $postId  не найен ")
     private val comments = mutableListOf<Comment>()
     private var nextCommentId = 1
 
@@ -187,14 +187,73 @@ class WallService {
     }
 
     fun createComment(postId: Int, comment: Comment): Comment {
-        val postExist = posts.any {it.id == postId}
+        val postExist = posts.any { it.id == postId }
         if (!postExist) {
             throw PostNotFoundException("Пост с id $postId  не найен")
         }
         val commentWithId = comment.copy(id = nextCommentId++, postId = postId)
         comments += commentWithId
         return commentWithId
+    }
+}
 
+class NoteService(
+    private val notes: Methods<Notes> = Methods(),
+    private val comments: Methods<Comment> = Methods()
+) {
+    private var nextCommentId = 1
+
+    fun addNote(note: Notes): Notes = notes.add(note)
+    fun getNotes(): List<Notes> = notes.getAll()
+    fun addCommentToNote(noteId: Int, comment: Comment): Comment {
+        val note = notes.findeById(noteId)
+        if (note == null || note.isDeleted) {
+            throw IllegalArgumentException("Заметка с id $noteId не найдена или удалена")
+        }
+        val commentWithId = comment.copy(id = nextCommentId++, noteId = noteId)
+        return comments.add(commentWithId)
     }
 
+    fun getCommentsForNote(noteId: Int): List<Comment> = comments.getAll().filter { it.noteId == noteId }
+}
+
+
+class AlreadyDeletedException(message: String) : RuntimeException(message)
+class NotDeletedException(message: String) : RuntimeException(message)
+class ItemNotFoundException(message: String) : RuntimeException(message)
+
+fun main() {
+    val notesRepository = Methods<Notes>()
+    val notesService = NoteService(notesRepository)
+    val note1 = notesRepository.add(Notes(1, 1, false, "Тест Заметка", "ЧТо то тестовое", "21.10.2025", null, null))
+    val note2 = notesRepository.add(Notes(2, 2, false, "Hello notes", "Hello my comrade notes", "21.10.2025", null, 5))
+    val comment =
+        notesService.addCommentToNote(1, comment = Comment(5, 15, "22.10.2025", "Тестовый коммент", 1, 1, false))
+
+    try {
+        notesRepository.delete(1)
+        notesRepository.delete(1) //проверка на повторное удаление
+
+    } catch (e: AlreadyDeletedException) {
+        println("Ошибка: ${e.message}")
+    }
+
+    try {
+        notesRepository.restore(5)// восстановление не существующего объекта
+    } catch (e: ItemNotFoundException) {
+        println("Ошибка: ${e.message}")
+    }
+    try {
+        notesRepository.restore(1)
+        notesRepository.restore(1)// повторное восстановление одного и тогоже
+    } catch (e: NotDeletedException) {
+        println("Ошибка: ${e.message}")
+    }
+
+
+    println(notesRepository.getAll())
+//    notesRepository.delete(1)
+//    println(notesRepository.getAll())
+//    notesRepository.restore(1)
+    println(notesService.getCommentsForNote(1))
 }
