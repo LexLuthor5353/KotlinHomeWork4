@@ -106,4 +106,73 @@ class WallServiceTest {
             repo.restore(999)
         }
     }
+
+    class ChatServiceTest {
+
+        private lateinit var service: ChatService
+
+        @Before
+        fun setup() {
+            service = ChatService()
+        }
+
+        @Test
+        fun `create chat and send message`() {
+            service.sendMessage(toUserId = 1, fromUserId = 2, text = "Hello")
+            val chats = service.getChats()
+            assertEquals(1, chats.size)
+            assertEquals("Hello", chats[0].message[0].text)
+        }
+
+        @Test
+        fun `count unread chats`() {
+            service.sendMessage(1, 2, "Прив")
+            service.sendMessage(2, 1, "Yo")
+            assertEquals(2, service.getChatsCount())
+        }
+
+        @Test
+        fun `return last messages or placeholder`() {
+            service.sendMessage(1, 2, "Первыйн")
+            service.deleteChat(1)
+            val messages = service.getLastMessage()
+            assertTrue(messages.contains("нет сообщений"))
+        }
+
+        @Test
+        fun `mark messages`() {
+            service.sendMessage(1, 2, "Один")
+            service.sendMessage(1, 2, "Два")
+            val messages = service.getMessages(1, 2)
+            assertTrue(messages.all { it.isRead })
+        }
+
+        @Test
+        fun `delete message`() {
+            service.sendMessage(1, 2, "Удалено")
+            val messageId = service.getMessages(1, 1)[0].id
+            service.deleteMessage(1, messageId)
+            val messages = service.getMessages(1, 1)
+            assertTrue(messages.isEmpty())
+        }
+
+        @Test
+        fun `throw when getting messages`() {
+            try {
+                service.getMessages(42, 1)
+                fail("Expected IllegalArgumentException")
+            } catch (e: IllegalArgumentException) {
+                assertEquals("Чат не найден", e.message)
+            }
+        }
+
+        @Test
+        fun `delete chat`() {
+            service.sendMessage(1, 2, "Bye")
+            service.deleteChat(1)
+            assertTrue(service.getChats().isEmpty())
+        }
+    }
+
+
 }

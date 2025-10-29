@@ -103,7 +103,7 @@ data class Comment(
     val date: String, //Дата комметрия(Так же переделан на строку)
     val text: String, //Текс комментария
     val postId: Int, //ИД поста
-    val noteId: Int?,
+    val noteId: Int?, //   ИД заметки
     override val isDeleted: Boolean// пометка на удаление
 ) : Deletable {
     override fun toggleDeletable(): Deletable {
@@ -165,8 +165,6 @@ class PostNotFoundException(message: String) : RuntimeException(message)
 class WallService {
     private val posts = mutableListOf<Post>()
     private var nextId = 1
-
-    //    private val comments = mutableListOf<Comment>()?: throw PostNotFoundException("Пост с id $postId  не найен ")
     private val comments = mutableListOf<Comment>()
     private var nextCommentId = 1
 
@@ -185,7 +183,6 @@ class WallService {
         }
         return false
     }
-
     fun createComment(postId: Int, comment: Comment): Comment {
         val postExist = posts.any { it.id == postId }
         if (!postExist) {
@@ -217,7 +214,6 @@ class NoteService(
     fun getCommentsForNote(noteId: Int): List<Comment> = comments.getAll().filter { it.noteId == noteId }
 }
 
-
 class AlreadyDeletedException(message: String) : RuntimeException(message)
 class NotDeletedException(message: String) : RuntimeException(message)
 class ItemNotFoundException(message: String) : RuntimeException(message)
@@ -227,8 +223,7 @@ fun main() {
     val notesService = NoteService(notesRepository)
     val note1 = notesRepository.add(Notes(1, 1, false, "Тест Заметка", "ЧТо то тестовое", "21.10.2025", null, null))
     val note2 = notesRepository.add(Notes(2, 2, false, "Hello notes", "Hello my comrade notes", "21.10.2025", null, 5))
-    val comment =
-        notesService.addCommentToNote(1, comment = Comment(5, 15, "22.10.2025", "Тестовый коммент", 1, 1, false))
+    val comment = notesService.addCommentToNote(1, comment = Comment(5, 15, "22.10.2025", "Тестовый коммент", 1, 1, false))
 
     try {
         notesRepository.delete(1)
