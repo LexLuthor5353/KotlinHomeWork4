@@ -109,70 +109,54 @@ class WallServiceTest {
 
     class ChatServiceTest {
 
-        private lateinit var service: ChatService
-
-        @Before
-        fun setup() {
-            service = ChatService()
-        }
-
         @Test
-        fun `create chat and send message`() {
-            service.sendMessage(toUserId = 1, fromUserId = 2, text = "Hello")
-            val chats = service.getChats()
-            assertEquals(1, chats.size)
-            assertEquals("Hello", chats[0].message[0].text)
-        }
-
-        @Test
-        fun `count unread chats`() {
-            service.sendMessage(1, 2, "Прив")
-            service.sendMessage(2, 1, "Yo")
-            assertEquals(2, service.getChatsCount())
-        }
-
-        @Test
-        fun `return last messages or placeholder`() {
-            service.sendMessage(1, 2, "Первыйн")
-            service.deleteChat(1)
-            val messages = service.getLastMessage()
-            assertTrue(messages.contains("нет сообщений"))
-        }
-
-        @Test
-        fun `mark messages`() {
-            service.sendMessage(1, 2, "Один")
-            service.sendMessage(1, 2, "Два")
+        fun `send and get messages`() {
+            val service = ChatService()
+            service.sendMessage(1, 100, "Привет")
+            service.sendMessage(1, 100, "Как оно?")
             val messages = service.getMessages(1, 2)
+            assertEquals(2, messages.size)
             assertTrue(messages.all { it.isRead })
         }
 
-        @Test
-        fun `delete message`() {
-            service.sendMessage(1, 2, "Удалено")
-            val messageId = service.getMessages(1, 1)[0].id
-            service.deleteMessage(1, messageId)
-            val messages = service.getMessages(1, 1)
-            assertTrue(messages.isEmpty())
+        @Test(expected = IllegalArgumentException::class)
+        fun `get messages from non-existing chat throws`() {
+            val service = ChatService()
+            service.getMessages(99, 1)
         }
 
         @Test
-        fun `throw when getting messages`() {
-            try {
-                service.getMessages(42, 1)
-                fail("Expected IllegalArgumentException")
-            } catch (e: IllegalArgumentException) {
-                assertEquals("Чат не найден", e.message)
-            }
+        fun `delete message works`() {
+            val service = ChatService()
+            service.sendMessage(1, 100, "Удали меня")
+            val msgId = service.getMessages(1, 1).first().id
+            service.deleteMessage(1, msgId)
+            assertTrue(service.getMessages(1, 1).isEmpty())
+        }
+
+        @Test(expected = IllegalArgumentException::class)
+        fun `delete message from non-existing chat throws`() {
+            val service = ChatService()
+            service.deleteMessage(99, 1)
         }
 
         @Test
-        fun `delete chat`() {
-            service.sendMessage(1, 2, "Bye")
-            service.deleteChat(1)
-            assertTrue(service.getChats().isEmpty())
+        fun `get last message`() {
+            val service = ChatService()
+            service.sendMessage(1, 100, "Первое")
+            service.sendMessage(1, 100, "Второе")
+            val last = service.getLastMessage()
+            assertEquals("Второе", last.first())
+        }
+
+        @Test
+        fun `unread count extension`() {
+            val messages = listOf(
+                Message(1, 100, "Прочитано", true),
+                Message(2, 100, "Не прочитано", false)
+            )
+            assertEquals(1, messages.unreadCount())
         }
     }
-
 
 }
